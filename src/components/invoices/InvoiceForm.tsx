@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 import { invoiceSchema } from '../../schemas';
-import type { Invoice, InvoiceFormData } from '../../types';
+import type { Invoice } from '../../types';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useStore, useCustomers } from '../../store';
@@ -117,7 +117,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
     return subtotal + totalTax - discount;
   };
 
-  const onSubmit = async (data: ExtendedInvoiceFormData) => {
+  // Explicitly type the submit handler
+  const onSubmit: SubmitHandler<ExtendedInvoiceFormData> = async (data) => {
     try {
       setLoading(true);
       const invoiceNumber = await getNextInvoiceNumber();
