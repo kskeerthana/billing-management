@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Search, Edit, Trash2, Eye } from 'lucide-react';
 import type { Customer } from '../../types';
 import { useStore } from '../../store';
-import { Button } from '../shared/Button';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
 import { CustomerDetails } from './CustomerDetails';
 

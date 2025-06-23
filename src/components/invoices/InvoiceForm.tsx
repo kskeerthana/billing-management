@@ -3,32 +3,31 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { z } from 'zod';
-import type { Invoice } from '../../types';
+import { invoiceSchema } from '../../schemas';
+import type { Invoice, InvoiceFormData } from '../../types';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useStore, useCustomers } from '../../store';
 
-// Enhanced schema with tax fields
-const enhancedInvoiceItemSchema = z.object({
+// Extend the invoice item schema to include tax for UI
+const invoiceItemWithTaxSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.number().min(1, "Quantity must be at least 1"),
   price: z.number().min(0, "Price must be positive"),
-  taxRate: z.number().min(0).max(100).default(0), // Tax rate as percentage
+  taxRate: z.number().min(0).max(100).default(0),
   total: z.number()
 });
 
-const enhancedInvoiceSchema = z.object({
-  customerId: z.string().min(1, "Customer is required"),
-  date: z.string().min(1, "Date is required"),
-  dueDate: z.string().min(1, "Due date is required"),
-  items: z.array(enhancedInvoiceItemSchema).min(1, "At least one item is required"),
-  taxRate: z.number().min(0).max(100).optional(), // Global tax rate if applicable
-  discount: z.number().min(0).default(0), // Discount amount
+// Create extended invoice schema for the form
+const extendedInvoiceSchema = invoiceSchema.extend({
+  items: z.array(invoiceItemWithTaxSchema),
+  taxRate: z.number().min(0).max(100).optional(),
+  discount: z.number().min(0).default(0),
   discountType: z.enum(['percentage', 'fixed']).default('percentage'),
   notes: z.string().optional()
 });
 
-type EnhancedInvoiceFormData = z.infer<typeof enhancedInvoiceSchema>;
+type ExtendedInvoiceFormData = z.infer<typeof extendedInvoiceSchema>;
 
 interface InvoiceFormProps {
   onComplete: () => void;
@@ -49,8 +48,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
     watch,
     setValue,
     formState: { errors } 
-  } = useForm<EnhancedInvoiceFormData>({
-    resolver: zodResolver(enhancedInvoiceSchema),
+  } = useForm<ExtendedInvoiceFormData>({
+    resolver: zodResolver(extendedInvoiceSchema),
     defaultValues: {
       customerId: '',
       date: new Date().toISOString().split('T')[0],
@@ -69,15 +68,15 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
   });
 
   const watchItems = watch('items');
-  const watchDiscount = watch('discount');
-  const watchDiscountType = watch('discountType');
-  const watchGlobalTaxRate = watch('taxRate');
+  const watchDiscount = watch('discount') || 0;
+  const watchDiscountType = watch('discountType') || 'percentage';
+  const watchGlobalTaxRate = watch('taxRate') || 0;
 
   // Calculate item totals with tax
   useEffect(() => {
     watchItems.forEach((item, index) => {
       const subtotal = (item.quantity || 0) * (item.price || 0);
-      const taxRate = useGlobalTax ? (watchGlobalTaxRate || 0) : (item.taxRate || 0);
+      const taxRate = useGlobalTax ? watchGlobalTaxRate : (item.taxRate || 0);
       const taxAmount = subtotal * (taxRate / 100);
       const total = subtotal + taxAmount;
       
@@ -97,7 +96,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
   const calculateTotalTax = () => {
     return watchItems.reduce((sum, item) => {
       const itemSubtotal = (item.quantity || 0) * (item.price || 0);
-      const taxRate = useGlobalTax ? (watchGlobalTaxRate || 0) : (item.taxRate || 0);
+      const taxRate = useGlobalTax ? watchGlobalTaxRate : (item.taxRate || 0);
       const taxAmount = itemSubtotal * (taxRate / 100);
       return sum + taxAmount;
     }, 0);
@@ -106,9 +105,9 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
   const calculateDiscount = () => {
     const subtotal = calculateSubtotal();
     if (watchDiscountType === 'percentage') {
-      return subtotal * ((watchDiscount || 0) / 100);
+      return subtotal * (watchDiscount / 100);
     }
-    return watchDiscount || 0;
+    return watchDiscount;
   };
 
   const calculateGrandTotal = () => {
@@ -118,23 +117,26 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
     return subtotal + totalTax - discount;
   };
 
-  const onSubmit = async (data: EnhancedInvoiceFormData) => {
+  const onSubmit = async (data: ExtendedInvoiceFormData) => {
     try {
       setLoading(true);
       const invoiceNumber = await getNextInvoiceNumber();
       
+      // Transform to match the base Invoice type
       const invoice: Invoice = {
         id: Date.now().toString(),
         invoiceNumber,
         customerId: data.customerId,
         date: data.date,
         dueDate: data.dueDate,
-        items: data.items.map(item => ({
-          description: item.description,
-          quantity: item.quantity,
-          price: item.price,
-          total: item.total
-        })),
+        items: data.items
+          .filter(item => item.description)
+          .map(item => ({
+            description: item.description,
+            quantity: item.quantity,
+            price: item.price,
+            total: item.total
+          })),
         total: calculateGrandTotal(),
         status: 'unpaid',
         createdAt: new Date()
@@ -209,13 +211,20 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
           {useGlobalTax && (
             <div className="flex items-center space-x-2">
               <label className="text-sm text-gray-700">Tax Rate:</label>
-              <input
-                type="number"
-                className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register('taxRate', { valueAsNumber: true })}
-                min="0"
-                max="100"
-                step="0.1"
+              <Controller
+                name="taxRate"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                )}
               />
               <span className="text-sm text-gray-700">%</span>
             </div>
@@ -368,12 +377,19 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
         <div className="mb-6 flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <label className="text-sm font-medium text-gray-700">Discount:</label>
-            <input
-              type="number"
-              className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...register('discount', { valueAsNumber: true })}
-              min="0"
-              step="0.01"
+            <Controller
+              name="discount"
+              control={control}
+              render={({ field }) => (
+                <input
+                  type="number"
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  min="0"
+                  step="0.01"
+                />
+              )}
             />
             <select
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
