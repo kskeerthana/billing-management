@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { shallow } from 'zustand/shallow';
 import type { Customer, Invoice } from '../types';
 import { storageService } from '../services/storage.services';
 
