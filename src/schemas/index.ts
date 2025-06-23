@@ -27,20 +27,28 @@ export const customerSchema = z.object({
   sameAsShipping: z.boolean()
 });
 
-// Invoice Item Schema
+// Enhanced Invoice Item Schema with tax
 export const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.number().min(1, "Quantity must be at least 1"),
   price: z.number().min(0, "Price must be positive"),
+  taxRate: z.number().min(0).max(100).default(0), // Tax rate as percentage
   total: z.number()
 });
 
-// Invoice Schema
+// Enhanced Invoice Schema with all fields
 export const invoiceSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   date: z.string().min(1, "Date is required"),
   dueDate: z.string().min(1, "Due date is required"),
-  items: z.array(invoiceItemSchema).min(1, "At least one item is required")
+  items: z.array(invoiceItemSchema).min(1, "At least one item is required"),
+  // Additional fields for the enhanced form
+  globalTaxRate: z.number().min(0).max(100).optional(), // Global tax rate if using
+  discount: z.number().min(0).default(0), // Discount amount
+  discountType: z.enum(['percentage', 'fixed']).default('percentage'),
+  subtotal: z.number().optional(), // Calculated field
+  totalTax: z.number().optional(), // Calculated field
+  notes: z.string().optional()
 });
 
 // Export types from schemas
@@ -59,3 +67,7 @@ export type Invoice = z.infer<typeof invoiceSchema> & {
   status: 'paid' | 'unpaid';
   createdAt: Date;
 };
+
+// Form-specific types (for use in forms)
+export type CustomerFormData = z.infer<typeof customerSchema>;
+export type InvoiceFormData = z.infer<typeof invoiceSchema>;
