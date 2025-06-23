@@ -9,150 +9,142 @@ import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useStore, useCustomers } from '../../store';
 
-// Extend the invoice item schema to include tax for UI
 const invoiceItemWithTaxSchema = z.object({
-  description: z.string().min(1, "Description is required"),
-  quantity: z.number().min(1, "Quantity must be at least 1"),
-  price: z.number().min(0, "Price must be positive"),
-  taxRate: z.number().min(0).max(100).default(0),
-  total: z.number()
-});
-
-// Create extended invoice schema for the form
-const extendedInvoiceSchema = invoiceSchema.extend({
-  items: z.array(invoiceItemWithTaxSchema),
-  taxRate: z.number().min(0).max(100).optional(),
-  discount: z.number().min(0).default(0),
-  discountType: z.enum(['percentage', 'fixed']).default('percentage'),
-  notes: z.string().optional()
-});
-
-type ExtendedInvoiceFormData = z.infer<typeof extendedInvoiceSchema>;
-
-interface InvoiceFormProps {
-  onComplete: () => void;
-}
-
-export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
-  const [loading, setLoading] = useState(false);
-  const [useGlobalTax, setUseGlobalTax] = useState(false);
+    description: z.string().min(1, 'Description is required'),
+    quantity: z.number().min(1, 'Quantity must be at least 1'),
+    price: z.number().min(0, 'Price must be positive'),
+    taxRate: z.number().min(0).max(100).default(0),
+    total: z.number(),
+  });
   
-  // Get customers from Zustand store
-  const customers = useCustomers();
-  const { addInvoice, getNextInvoiceNumber } = useStore();
-
-  const form = useForm<ExtendedInvoiceFormData>({
-    resolver: zodResolver(extendedInvoiceSchema),
-    defaultValues: {
-      customerId: '',
-      date: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      items: [{ description: '', quantity: 1, price: 0, taxRate: 0, total: 0 }],
-      discount: 0,
-      discountType: 'percentage',
-      taxRate: 0,
-      notes: ''
-    }
+  const extendedInvoiceSchema = invoiceSchema.extend({
+    items: z.array(invoiceItemWithTaxSchema),
+    taxRate: z.number().min(0).max(100).optional(),
+    discount: z.number().min(0).default(0),
+    discountType: z.enum(['percentage', 'fixed']).default('percentage'),
+    notes: z.string().optional(),
   });
-
-  const { 
-    register, 
-    control, 
-    handleSubmit, 
-    watch,
-    setValue,
-    formState: { errors } 
-  } = form;
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'items'
-  });
-
-  const watchItems = watch('items');
-  const watchDiscount = watch('discount') || 0;
-  const watchDiscountType = watch('discountType') || 'percentage';
-  const watchGlobalTaxRate = watch('taxRate') || 0;
-
-  // Calculate item totals with tax
-  useEffect(() => {
-    watchItems.forEach((item, index) => {
-      const subtotal = (item.quantity || 0) * (item.price || 0);
-      const taxRate = useGlobalTax ? watchGlobalTaxRate : (item.taxRate || 0);
-      const taxAmount = subtotal * (taxRate / 100);
-      const total = subtotal + taxAmount;
-      
-      if (total !== item.total) {
-        setValue(`items.${index}.total`, total);
-      }
+  
+  type InvoiceFormValues = z.infer<typeof extendedInvoiceSchema>;
+  
+  interface InvoiceFormProps {
+    onComplete: () => void;
+  }
+  
+  export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
+    const [loading, setLoading] = useState(false);
+    const [useGlobalTax, setUseGlobalTax] = useState(false);
+  
+    const customers = useCustomers();
+    const { addInvoice, getNextInvoiceNumber } = useStore();
+  
+    const {
+      register,
+      control,
+      handleSubmit,
+      watch,
+      setValue,
+      formState: { errors },
+    } = useForm<InvoiceFormValues>({
+      resolver: zodResolver(extendedInvoiceSchema),
+      defaultValues: {
+        customerId: '',
+        date: new Date().toISOString().split('T')[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        items: [{ description: '', quantity: 1, price: 0, taxRate: 0, total: 0 }],
+        discount: 0,
+        discountType: 'percentage',
+        taxRate: 0,
+        notes: '',
+      },
     });
-  }, [watchItems, setValue, useGlobalTax, watchGlobalTaxRate]);
-
-  const calculateSubtotal = () => {
-    return watchItems.reduce((sum, item) => {
-      const itemSubtotal = (item.quantity || 0) * (item.price || 0);
-      return sum + itemSubtotal;
-    }, 0);
-  };
-
-  const calculateTotalTax = () => {
-    return watchItems.reduce((sum, item) => {
-      const itemSubtotal = (item.quantity || 0) * (item.price || 0);
-      const taxRate = useGlobalTax ? watchGlobalTaxRate : (item.taxRate || 0);
-      const taxAmount = itemSubtotal * (taxRate / 100);
-      return sum + taxAmount;
-    }, 0);
-  };
-
-  const calculateDiscount = () => {
-    const subtotal = calculateSubtotal();
-    if (watchDiscountType === 'percentage') {
-      return subtotal * (watchDiscount / 100);
-    }
-    return watchDiscount;
-  };
-
-  const calculateGrandTotal = () => {
-    const subtotal = calculateSubtotal();
-    const totalTax = calculateTotalTax();
-    const discount = calculateDiscount();
-    return subtotal + totalTax - discount;
-  };
-
-  const onSubmit = async (data: ExtendedInvoiceFormData) => {
-    try {
-      setLoading(true);
-      const invoiceNumber = await getNextInvoiceNumber();
-      
-      // Transform to match the base Invoice type
-      const invoice: Invoice = {
-        id: Date.now().toString(),
-        invoiceNumber,
-        customerId: data.customerId,
-        date: data.date,
-        dueDate: data.dueDate,
-        items: data.items
-          .filter(item => item.description)
-          .map(item => ({
-            description: item.description,
-            quantity: item.quantity,
-            price: item.price,
-            total: item.total
-          })),
-        total: calculateGrandTotal(),
-        status: 'unpaid',
-        createdAt: new Date()
-      };
-      
-      await addInvoice(invoice);
-      onComplete();
-    } catch (error) {
-      console.error('Error creating invoice:', error);
-      alert('Failed to create invoice. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+    const { fields, append, remove } = useFieldArray({
+      control,
+      name: 'items',
+    });
+  
+    const watchItems = watch('items');
+    const watchDiscount = watch('discount') || 0;
+    const watchDiscountType = watch('discountType') || 'percentage';
+    const watchGlobalTaxRate = watch('taxRate') || 0;
+  
+    useEffect(() => {
+      watchItems.forEach((item, index) => {
+        const subtotal = (item.quantity || 0) * (item.price || 0);
+        const taxRate = useGlobalTax ? watchGlobalTaxRate : (item.taxRate || 0);
+        const taxAmount = subtotal * (taxRate / 100);
+        const total = subtotal + taxAmount;
+        if (total !== item.total) {
+          setValue(`items.${index}.total`, total);
+        }
+      });
+    }, [watchItems, setValue, useGlobalTax, watchGlobalTaxRate]);
+  
+    const calculateSubtotal = () => {
+      return watchItems.reduce((sum, item) => {
+        const itemSubtotal = (item.quantity || 0) * (item.price || 0);
+        return sum + itemSubtotal;
+      }, 0);
+    };
+  
+    const calculateTotalTax = () => {
+      return watchItems.reduce((sum, item) => {
+        const itemSubtotal = (item.quantity || 0) * (item.price || 0);
+        const taxRate = useGlobalTax ? watchGlobalTaxRate : (item.taxRate || 0);
+        const taxAmount = itemSubtotal * (taxRate / 100);
+        return sum + taxAmount;
+      }, 0);
+    };
+  
+    const calculateDiscount = () => {
+      const subtotal = calculateSubtotal();
+      if (watchDiscountType === 'percentage') {
+        return subtotal * (watchDiscount / 100);
+      }
+      return watchDiscount;
+    };
+  
+    const calculateGrandTotal = () => {
+      const subtotal = calculateSubtotal();
+      const totalTax = calculateTotalTax();
+      const discount = calculateDiscount();
+      return subtotal + totalTax - discount;
+    };
+  
+    const onSubmit: SubmitHandler<InvoiceFormValues> = async (data) => {
+      try {
+        setLoading(true);
+        const invoiceNumber = await getNextInvoiceNumber();
+  
+        const invoice: Invoice = {
+          id: Date.now().toString(),
+          invoiceNumber,
+          customerId: data.customerId,
+          date: data.date,
+          dueDate: data.dueDate,
+          items: data.items
+            .filter((item) => item.description)
+            .map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              price: item.price,
+              total: item.total,
+            })),
+          total: calculateGrandTotal(),
+          status: 'unpaid',
+          createdAt: new Date(),
+        };
+  
+        await addInvoice(invoice);
+        onComplete();
+      } catch (error) {
+        console.error('Error creating invoice:', error);
+        alert('Failed to create invoice. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
