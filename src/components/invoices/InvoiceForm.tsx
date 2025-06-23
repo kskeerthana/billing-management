@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 // import { z } from 'zod';
 import { invoiceSchema } from '../../schemas';
-import type { Invoice } from '../../types';
+import type { Invoice, InvoiceFormData } from '../../types';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useStore, useCustomers } from '../../store';
