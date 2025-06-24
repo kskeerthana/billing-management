@@ -11,7 +11,7 @@ export const InvoiceList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
-  // Get state from Zustand
+  // Getting state from Zustand
   const {
     invoices,
     customers,
@@ -22,7 +22,7 @@ export const InvoiceList: React.FC = () => {
     updateInvoice
   } = useStore();
 
-  // Compute filtered invoices using useMemo
+  // filtered invoices using useMemo
   const filteredInvoices = useMemo(() => {
     if (selectedCustomerId) {
       return invoices.filter(inv => inv.customerId === selectedCustomerId);

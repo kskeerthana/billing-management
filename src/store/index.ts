@@ -4,23 +4,19 @@ import type { Customer, Invoice } from '../types';
 import { storageService } from '../services/storage.services';
 
 interface AppState {
-  // Customer State
   customers: Customer[];
   customersLoading: boolean;
   customersError: string | null;
   
-  // Invoice State
   invoices: Invoice[];
   invoicesLoading: boolean;
   invoicesError: string | null;
   
-  // Filter States
   customerSearchTerm: string;
   customerSortBy: 'name' | 'date';
   customerSortOrder: 'asc' | 'desc';
   selectedCustomerId: string;
   
-  // Actions - Customers
   loadCustomers: () => Promise<void>;
   addCustomer: (customer: Customer) => Promise<void>;
   updateCustomer: (id: string, customer: Customer) => Promise<void>;
@@ -28,21 +24,18 @@ interface AppState {
   setCustomerSearchTerm: (term: string) => void;
   setCustomerSort: (sortBy: 'name' | 'date', sortOrder: 'asc' | 'desc') => void;
   
-  // Actions - Invoices
   loadInvoices: () => Promise<void>;
   addInvoice: (invoice: Invoice) => Promise<void>;
   updateInvoice: (id: string, invoice: Invoice) => Promise<void>;
   deleteInvoice: (id: string) => Promise<void>;
   setSelectedCustomerId: (id: string) => void;
   
-  // Computed Values
   getFilteredCustomers: () => Customer[];
   getFilteredInvoices: () => Invoice[];
   getCustomerById: (id: string) => Customer | undefined;
   getInvoicesByCustomerId: (customerId: string) => Invoice[];
   getNextInvoiceNumber: () => Promise<string>;
   
-  // Utility Actions
   initializeData: () => Promise<void>;
   exportData: () => Promise<{ customers: Customer[], invoices: Invoice[] }>;
   importData: (data: { customers: Customer[], invoices: Invoice[] }) => Promise<void>;
@@ -51,7 +44,6 @@ interface AppState {
 export const useStore = create<AppState>()(
   devtools(
     (set, get) => ({
-      // Initial State
       customers: [],
       customersLoading: false,
       customersError: null,
@@ -63,7 +55,6 @@ export const useStore = create<AppState>()(
       customerSortOrder: 'asc',
       selectedCustomerId: '',
       
-      // Customer Actions
       loadCustomers: async () => {
         set({ customersLoading: true, customersError: null });
         try {
@@ -116,7 +107,6 @@ export const useStore = create<AppState>()(
       
       setCustomerSort: (sortBy, sortOrder) => set({ customerSortBy: sortBy, customerSortOrder: sortOrder }),
       
-      // Invoice Actions
       loadInvoices: async () => {
         set({ invoicesLoading: true, invoicesError: null });
         try {
@@ -166,7 +156,6 @@ export const useStore = create<AppState>()(
       
       setSelectedCustomerId: (id) => set({ selectedCustomerId: id }),
       
-      // Computed Values
       getFilteredCustomers: () => {
         const state = get();
         let filtered = state.customers.filter(customer =>
@@ -208,7 +197,6 @@ export const useStore = create<AppState>()(
         return await storageService.getNextInvoiceNumber();
       },
       
-      // Utility Actions
       initializeData: async () => {
         const loadPromises = [get().loadCustomers(), get().loadInvoices()];
         await Promise.all(loadPromises);
@@ -225,7 +213,6 @@ export const useStore = create<AppState>()(
       importData: async (data) => {
         try {
           await storageService.importData(data);
-          // Reload data from storage
           await get().initializeData();
         } catch (error) {
           console.error('Error importing data:', error);
@@ -234,13 +221,10 @@ export const useStore = create<AppState>()(
       }
     }),
     {
-      name: 'billing-app-store', // name for devtools
+      name: 'billing-app-store',
     }
   )
 );
 
-// Selectors for easy access
 export const useCustomers = () => useStore(state => state.customers);
 export const useInvoices = () => useStore(state => state.invoices);
-// export const useFilteredCustomers = () => useStore(state => state.getFilteredCustomers());
-// export const useFilteredInvoices = () => useStore(state => state.getFilteredInvoices());

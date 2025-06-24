@@ -23,7 +23,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   const renderPageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 5;
+    const maxVisiblePages = window.innerWidth < 640 ? 3 : 5;
     
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
@@ -88,12 +88,14 @@ export const Pagination: React.FC<PaginationProps> = ({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between mt-6 px-4">
+    
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-t">
       <div className="text-sm text-gray-700">
-        Showing {startItem} to {endItem} of {totalItems} {itemName}
+        <span className="hidden sm:inline">Showing {startItem} to {endItem} of {totalItems} {itemName}</span>
+        <span className="sm:hidden">{startItem}-{endItem} of {totalItems}</span>
       </div>
       
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-1 sm:space-x-2">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}

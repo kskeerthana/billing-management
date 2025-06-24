@@ -149,7 +149,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
       }
       
       setSavedCustomer(customer);
-      setStep(3); // Move to confirmation step
+      setStep(3);
     } catch (error) {
       console.error('Error saving customer:', error);
       alert('Failed to save customer. Please try again.');

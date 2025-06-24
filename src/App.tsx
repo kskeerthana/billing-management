@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Plus, Download, Upload, RefreshCw } from 'lucide-react';
+import { Users, FileText, Plus, Download, Upload, RefreshCw,Menu,X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CustomerForm } from './components/customers/CustomerForm';
@@ -19,6 +19,7 @@ function App() {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Zustand actions and state
   const initializeData = useStore(state => state.initializeData);
@@ -32,16 +33,13 @@ function App() {
       try {
         console.log('Initializing app data...');
         
-        // Check if this is the first time using the app
         const hasSeenApp = localStorage.getItem('billing-app-initialized');
         
         if (!hasSeenApp) {
-          // Initialize dummy data on first load
           await initializeDummyData();
           localStorage.setItem('billing-app-initialized', 'true');
         }
         
-        // Load data from storage
         await initializeData();
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -56,10 +54,10 @@ function App() {
   // Handle tab change - always show list view when switching tabs
   const handleTabChange = (tab: 'customers' | 'invoices') => {
     setActiveTab(tab);
-    // Reset forms when switching tabs
     setShowCustomerForm(false);
     setShowInvoiceForm(false);
     setEditingCustomer(null);
+    setMobileMenuOpen(false);
   };
 
   const handleCustomerComplete = () => {
@@ -78,13 +76,11 @@ function App() {
     const pageWidth = doc.internal.pageSize.getWidth();
     
     if (activeTab === 'customers') {
-      // Add title
       doc.setFontSize(20);
       doc.text('Customer List', pageWidth / 2, 20, { align: 'center' });
       doc.setFontSize(10);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 30, { align: 'center' });
       
-      // Prepare customer data for table
       const tableData = customers.map(customer => [
         customer.personalInfo.name,
         customer.personalInfo.email,
@@ -93,7 +89,6 @@ function App() {
         new Date(customer.createdAt).toLocaleDateString()
       ]);
       
-      // Add customer table
       autoTable(doc, {
         head: [['Name', 'Email', 'Phone', 'Location', 'Created Date']],
         body: tableData,
@@ -103,35 +98,30 @@ function App() {
           cellPadding: 3
         },
         headStyles: {
-          fillColor: [37, 99, 235], // Blue color
+          fillColor: [37, 99, 235],
           textColor: 255
         },
         alternateRowStyles: {
-          fillColor: [249, 250, 251] // Light gray
+          fillColor: [249, 250, 251]
         }
       });
       
-      // Save the PDF
       doc.save(`customers-${new Date().toISOString().split('T')[0]}.pdf`);
       
     } else {
-      // Export invoices
       doc.setFontSize(20);
       doc.text('Invoice List', pageWidth / 2, 20, { align: 'center' });
       doc.setFontSize(10);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 30, { align: 'center' });
       
-      // Calculate summary
       const totalAmount = invoices.reduce((sum, inv) => sum + inv.total, 0);
       const paidAmount = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
       const unpaidAmount = invoices.filter(inv => inv.status === 'unpaid').reduce((sum, inv) => sum + inv.total, 0);
       
-      // Add summary
       doc.setFontSize(11);
       doc.text(`Total Invoices: ${invoices.length} | Total Amount: $${totalAmount.toFixed(2)}`, 15, 40);
       doc.text(`Paid: $${paidAmount.toFixed(2)} | Outstanding: $${unpaidAmount.toFixed(2)}`, 15, 47);
       
-      // Prepare invoice data for table
       const tableData = invoices.map(invoice => {
         const customer = customers.find(c => c.id === invoice.customerId);
         return [
@@ -144,7 +134,6 @@ function App() {
         ];
       });
       
-      // Add invoice table
       autoTable(doc, {
         head: [['Invoice #', 'Customer', 'Date', 'Due Date', 'Total', 'Status']],
         body: tableData,
@@ -154,31 +143,28 @@ function App() {
           cellPadding: 3
         },
         headStyles: {
-          fillColor: [37, 99, 235], // Blue color
+          fillColor: [37, 99, 235],
           textColor: 255
         },
         alternateRowStyles: {
-          fillColor: [249, 250, 251] // Light gray
+          fillColor: [249, 250, 251]
         },
         didDrawCell: (data) => {
-          // Color code status column
           if (data.section === 'body' && data.column.index === 5) {
             const status = data.cell.raw as string;
             if (status === 'PAID') {
-              doc.setTextColor(34, 197, 94); // Green
+              doc.setTextColor(34, 197, 94);
             } else {
-              doc.setTextColor(234, 179, 8); // Yellow
+              doc.setTextColor(234, 179, 8);
             }
           }
         }
       });
       
-      // Save the PDF
       doc.save(`invoices-${new Date().toISOString().split('T')[0]}.pdf`);
     }
   };
 
-  // Import data from JSON
   const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -187,14 +173,12 @@ function App() {
       const text = await file.text();
       const data = JSON.parse(text);
       
-      // Validate the data structure
       if (!data.customers || !data.invoices || !Array.isArray(data.customers) || !Array.isArray(data.invoices)) {
         throw new Error('Invalid data format. Expected { customers: [], invoices: [] }');
       }
       
       if (window.confirm(`This will replace all existing data with ${data.customers.length} customers and ${data.invoices.length} invoices. Are you sure?`)) {
         await importData(data);
-        // Reset UI state
         setShowCustomerForm(false);
         setShowInvoiceForm(false);
         setEditingCustomer(null);
@@ -205,11 +189,9 @@ function App() {
       alert(error instanceof Error ? error.message : 'Invalid file format. Please select a valid backup file.');
     }
     
-    // Reset input
     event.target.value = '';
   };
 
-  // Export data as JSON (for backup purposes)
   const handleExportJSON = async () => {
     try {
       const data = await storageService.exportData();
@@ -229,7 +211,6 @@ function App() {
     }
   };
 
-  // Add a button to reset and regenerate dummy data (development only)
   const handleResetDummyData = async () => {
     if (window.confirm('This will delete all existing data and generate new dummy data. Are you sure?')) {
       setIsFirstLoad(true);
@@ -247,7 +228,6 @@ function App() {
     }
   };
 
-  // Show loading screen during initial load
   if (isFirstLoad) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -261,13 +241,17 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">
+            {/* Logo/Title */}
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Billing Management
             </h1>
-            <nav className="flex items-center space-x-8">
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
               <button
                 onClick={() => handleTabChange('customers')}
                 className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -326,7 +310,6 @@ function App() {
                   />
                 </label>
                 
-                {/* Only show in development */}
                 {process.env.NODE_ENV === 'development' && (
                   <button
                     onClick={handleResetDummyData}
@@ -338,18 +321,94 @@ function App() {
                 )}
               </div>
             </nav>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              <button
+                onClick={() => handleTabChange('customers')}
+                className={`w-full flex items-center px-3 py-2 text-base font-medium rounded-md transition-colors ${
+                  activeTab === 'customers'
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <Users className="w-5 h-5 mr-3" />
+                Customers
+              </button>
+              <button
+                onClick={() => handleTabChange('invoices')}
+                className={`w-full flex items-center px-3 py-2 text-base font-medium rounded-md transition-colors ${
+                  activeTab === 'invoices'
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <FileText className="w-5 h-5 mr-3" />
+                Invoices
+              </button>
+              
+              <div className="border-t border-gray-200 pt-2 mt-2">
+                <button
+                  onClick={() => {
+                    handleExportPDF();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                >
+                  <Download className="w-5 h-5 mr-3" />
+                  Export as PDF
+                </button>
+                <button
+                  onClick={() => {
+                    handleExportJSON();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                >
+                  <Download className="w-5 h-5 mr-3" />
+                  Backup as JSON
+                </button>
+                <label className="w-full flex items-center px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md cursor-pointer">
+                  <Upload className="w-5 h-5 mr-3" />
+                  Import Data
+                  <input
+                    type="file"
+                    accept="application/json"
+                    onChange={(e) => {
+                      handleImportData(e);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {activeTab === 'customers' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {!showCustomerForm && (
               <div className="flex justify-end">
                 <Button onClick={() => setShowCustomerForm(true)}>
                   <Plus className="w-4 h-4 mr-2 inline" />
-                  Add Customer
+                  <span className="hidden sm:inline">Add Customer</span>
+                  <span className="sm:hidden">Add</span>
                 </Button>
               </div>
             )}
@@ -366,12 +425,13 @@ function App() {
         )}
 
         {activeTab === 'invoices' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {!showInvoiceForm && (
               <div className="flex justify-end">
                 <Button onClick={() => setShowInvoiceForm(true)}>
                   <Plus className="w-4 h-4 mr-2 inline" />
-                  Create Invoice
+                  <span className="hidden sm:inline">Create Invoice</span>
+                  <span className="sm:hidden">Create</span>
                 </Button>
               </div>
             )}

@@ -9,7 +9,6 @@ import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useStore, useCustomers } from '../../store';
 
-// Define the form data type directly from the schema
 type InvoiceFormData = z.infer<typeof invoiceSchema>;
 
 interface InvoiceFormProps {
@@ -226,7 +225,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
                 quantity: 1, 
                 price: 0, 
                 total: 0,
-                taxRate: 0  // taxRate after total
+                taxRate: 0 
             })}>
             <Plus className="w-4 h-4 mr-1 inline" />
             Add Item
@@ -362,7 +361,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
           </div>
         </div>
 
-        {/* Discount Section */}
         <div className="mb-6 flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <label className="text-sm font-medium text-gray-700">Discount:</label>
@@ -390,7 +388,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
           </div>
         </div>
 
-        {/* Notes Section */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Notes (Optional)
@@ -403,7 +400,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
           />
         </div>
 
-        {/* Totals Section */}
         <div className="border-t pt-4">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">

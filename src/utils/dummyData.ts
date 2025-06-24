@@ -72,12 +72,11 @@ export const generateDummyInvoices = (customers: Customer[]): Invoice[] => {
   const invoices: Invoice[] = [];
   let invoiceCounter = 1;
   
-  // Generate 2-3 invoices per customer
   customers.forEach((customer) => {
-    const invoiceCount = Math.floor(Math.random() * 2) + 2; // 2 or 3 invoices per customer
+    const invoiceCount = Math.floor(Math.random() * 2) + 2;
     
     for (let i = 0; i < invoiceCount; i++) {
-      const itemCount = Math.floor(Math.random() * 3) + 1; // 1-3 items per invoice
+      const itemCount = Math.floor(Math.random() * 3) + 1;
       const items = [];
       
       for (let j = 0; j < itemCount; j++) {
@@ -139,18 +138,15 @@ export const initializeDummyData = async () => {
   const { storageService } = await import('../services/storage.services');
   
   try {
-    // Check if data already exists
     const existingCustomers = await storageService.getAllCustomers();
     if (existingCustomers.length > 0) {
       console.log('Data already exists, skipping dummy data generation');
       return;
     }
     
-    // Generate dummy data
     const customers = generateDummyCustomers();
     const invoices = generateDummyInvoices(customers);
     
-    // Save to storage
     for (const customer of customers) {
       await storageService.createCustomer(customer);
     }

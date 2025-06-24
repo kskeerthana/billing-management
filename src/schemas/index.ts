@@ -19,7 +19,7 @@ export const addressSchema = z.object({
   country: z.string().min(1, "Country is required")
 });
 
-// Complete Customer Schema
+// Customer Schema
 export const customerSchema = z.object({
   personalInfo: personalInfoSchema,
   billingAddress: addressSchema,
@@ -27,7 +27,7 @@ export const customerSchema = z.object({
   sameAsShipping: z.boolean()
 });
 
-// Invoice Item Schema - matching the expected order
+//Invoice Item Schema
 export const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.number().min(1, "Quantity must be at least 1"),
@@ -36,7 +36,7 @@ export const invoiceItemSchema = z.object({
   taxRate: z.number().min(0).max(100).optional() // Made optional and moved after total
 });
 
-// Invoice Schema - keeping fields optional as expected
+//Invoice Schema
 export const invoiceSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   date: z.string().min(1, "Date is required"),
@@ -50,7 +50,7 @@ export const invoiceSchema = z.object({
   notes: z.string().optional()
 });
 
-// Export types from schemas
+//Export types from schemas
 export type PersonalInfo = z.infer<typeof personalInfoSchema>;
 export type Address = z.infer<typeof addressSchema>;
 export type Customer = z.infer<typeof customerSchema> & {
@@ -67,6 +67,5 @@ export type Invoice = z.infer<typeof invoiceSchema> & {
   createdAt: Date;
 };
 
-// Form-specific types (for use in forms)
 export type CustomerFormData = z.infer<typeof customerSchema>;
 export type InvoiceFormData = z.infer<typeof invoiceSchema>;

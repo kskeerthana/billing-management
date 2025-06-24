@@ -1,17 +1,17 @@
 import localforage from 'localforage';
 import type { Customer, Invoice } from '../types';
 
-// Configure localforage with explicit config
+// localforage with explicit config
 localforage.config({
   driver: localforage.INDEXEDDB,
   name: 'billing-app',
   version: 1.0,
-  size: 4980736, // Size of database, in bytes (4MB)
-  storeName: 'keyvaluepairs', // Default store name
+  size: 4980736,
+  storeName: 'keyvaluepairs',
   description: 'Billing Management App Storage'
 });
 
-// Create separate stores for customers and invoices
+//separate stores for customers and invoices
 const customersDB = localforage.createInstance({
   name: "billing-app",
   storeName: "customers",
@@ -51,16 +51,12 @@ class StorageService {
   private async ensureInitialized() {
     if (!this.initialized) {
       try {
-        // Force initialization by checking if databases are ready
         await customersDB.ready();
         await invoicesDB.ready();
-        
-        // Log which drivers are being used
         console.log('Storage initialized successfully');
         console.log('Customers DB using:', customersDB.driver());
         console.log('Invoices DB using:', invoicesDB.driver());
         
-        // Create test entries to ensure DB is created
         const testKey = '__test__';
         await customersDB.setItem(testKey, { test: true });
         await customersDB.removeItem(testKey);
@@ -70,14 +66,12 @@ class StorageService {
         this.initialized = true;
       } catch (error) {
         console.error('Storage initialization failed:', error);
-        // Fall back to in-memory storage if needed
         this.initialized = false;
         throw error;
       }
     }
   }
 
-  // Customer methods
   async getAllCustomers(): Promise<Customer[]> {
     await this.ensureInitialized();
     try {
@@ -87,7 +81,6 @@ class StorageService {
       for (const key of keys) {
         const customer = await customersDB.getItem<Customer>(key);
         if (customer) {
-          // Ensure dates are Date objects
           customer.createdAt = new Date(customer.createdAt);
           customer.updatedAt = new Date(customer.updatedAt);
           customers.push(customer);
@@ -121,7 +114,6 @@ class StorageService {
   async createCustomer(customer: Customer): Promise<Customer> {
     await this.ensureInitialized();
     try {
-      // Ensure dates are serializable
       const customerToStore = {
         ...customer,
         createdAt: customer.createdAt.toISOString(),
@@ -140,7 +132,6 @@ class StorageService {
   async updateCustomer(id: string, customer: Customer): Promise<Customer> {
     await this.ensureInitialized();
     try {
-      // Ensure dates are serializable
       const customerToStore = {
         ...customer,
         createdAt: customer.createdAt.toISOString(),
@@ -160,7 +151,6 @@ class StorageService {
     await this.ensureInitialized();
     try {
       await customersDB.removeItem(id);
-      // Also delete all invoices for this customer
       const invoices = await this.getInvoicesByCustomerId(id);
       for (const invoice of invoices) {
         await this.deleteInvoice(invoice.id);
@@ -186,7 +176,6 @@ class StorageService {
     }
   }
 
-  // Invoice methods
   async getAllInvoices(): Promise<Invoice[]> {
     await this.ensureInitialized();
     try {
@@ -196,7 +185,6 @@ class StorageService {
       for (const key of keys) {
         const invoice = await invoicesDB.getItem<Invoice>(key);
         if (invoice) {
-          // Ensure date is a Date object
           invoice.createdAt = new Date(invoice.createdAt);
           invoices.push(invoice);
         }
@@ -239,7 +227,6 @@ class StorageService {
   async createInvoice(invoice: Invoice): Promise<Invoice> {
     await this.ensureInitialized();
     try {
-      // Ensure date is serializable
       const invoiceToStore = {
         ...invoice,
         createdAt: invoice.createdAt.toISOString()
@@ -257,7 +244,6 @@ class StorageService {
   async updateInvoice(id: string, invoice: Invoice): Promise<Invoice> {
     await this.ensureInitialized();
     try {
-      // Ensure date is serializable
       const invoiceToStore = {
         ...invoice,
         createdAt: invoice.createdAt.toISOString()
@@ -302,7 +288,6 @@ class StorageService {
     }
   }
 
-  // Utility methods
   async clearAllData(): Promise<void> {
     await this.ensureInitialized();
     try {
@@ -330,15 +315,12 @@ class StorageService {
   async importData(data: { customers: Customer[], invoices: Invoice[] }): Promise<void> {
     await this.ensureInitialized();
     try {
-      // Clear existing data first
       await this.clearAllData();
       
-      // Import customers
       for (const customer of data.customers) {
         await this.createCustomer(customer);
       }
       
-      // Import invoices
       for (const invoice of data.invoices) {
         await this.createInvoice(invoice);
       }
@@ -350,13 +332,11 @@ class StorageService {
     }
   }
 
-  // Debug method to check if storage is working
   async testStorage(): Promise<void> {
     console.log('Testing storage...');
     try {
       await this.ensureInitialized();
-      
-      // Test customer storage
+    
       const testCustomer: Customer = {
         id: 'test-' + Date.now(),
         personalInfo: {
@@ -383,15 +363,12 @@ class StorageService {
         updatedAt: new Date()
       };
       
-      // Create
       await this.createCustomer(testCustomer);
       console.log('Test customer created');
       
-      // Read
       const retrieved = await this.getCustomerById(testCustomer.id);
       console.log('Test customer retrieved:', retrieved);
       
-      // Delete
       await this.deleteCustomer(testCustomer.id);
       console.log('Test customer deleted');
       
@@ -402,10 +379,8 @@ class StorageService {
   }
 }
 
-// Create and export a singleton instance
 export const storageService = new StorageService();
 
-// For debugging in browser console
 if (typeof window !== 'undefined') {
   (window as any).storageService = storageService;
   (window as any).testStorage = () => storageService.testStorage();
