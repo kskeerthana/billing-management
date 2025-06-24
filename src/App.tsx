@@ -7,21 +7,43 @@ import { InvoiceList } from './components/invoices/InvoiceList';
 import { Button } from './components/shared/Button';
 import type { Customer } from './types';
 import { useStore } from './store';
+import { initializeDummyData } from './utils/dummyData';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'customers' | 'invoices'>('customers');
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   
   // Zustand actions
-  const { initializeData, exportData, importData } = useStore();
+  const initializeData = useStore(state => state.initializeData);
+  const exportData = useStore(state => state.exportData);
+  const importData = useStore(state => state.importData);
 
   // Initialize data on mount
   useEffect(() => {
-    initializeData();
+    const init = async () => {
+      console.log('Initializing app data...');
+      
+      // Check if this is the first load
+      const hasSeenApp = localStorage.getItem('billing-app-initialized');
+      
+      if (!hasSeenApp) {
+        // Initialize dummy data on first load
+        await initializeDummyData();
+        localStorage.setItem('billing-app-initialized', 'true');
+      }
+      
+      // Load data from storage
+      await initializeData();
+      setIsFirstLoad(false);
+    };
+    
+    init();
   }, [initializeData]);
 
+  // Rest of your component remains the same...
   const handleCustomerComplete = () => {
     setShowCustomerForm(false);
     setEditingCustomer(null);
@@ -73,6 +95,15 @@ function App() {
     
     // Reset input
     event.target.value = '';
+  };
+
+  // Add a button to reset and regenerate dummy data (optional)
+  const handleResetDummyData = async () => {
+    if (window.confirm('This will delete all existing data and generate new dummy data. Are you sure?')) {
+      localStorage.removeItem('billing-app-initialized');
+      await storageService.clearAllData();
+      window.location.reload();
+    }
   };
 
   return (
