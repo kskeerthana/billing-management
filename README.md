@@ -1,54 +1,47 @@
-# React + TypeScript + Vite
+# 🧾 Customer Billing Management App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern React-based billing system that allows users to create and manage customers and invoices with advanced client-side data management using IndexedDB. It supports multi-step form validation, dynamic calculations, and a clean, responsive UI.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌐 Hosted URL
+**Live App**: https://billing-management-six.vercel.app/
 
-## Expanding the ESLint configuration
+## 🎥 Demo Video
+**Watch the demo**: https://www.loom.com/share/bf4ad43b1d4a4f81bc4048132c4fb0cb?sid=502aac62-76b2-48cb-bfd4-1cee80ea1d6e
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## 🛠 Tech Stack
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- **React** + **TypeScript**
+- **React Hook Form** for form state management
+- **Zod** for schema validation and conditional logic
+- **localforage** for IndexedDB data storage
+- **Tailwind CSS** for utility-first styling
+- **Vite** for fast local development
+- **Vercel** for deployment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## 🚀 Features
+
+-  Multi step form for customer creation with conditional and async validation
+- IndexedDB (via localforage) to persist customer and invoice data
+- Dynamic invoice builder with subtotal, tax, discount, and grand total
+- Sortable and filterable customer and invoice lists
+- Status tracking for paid/unpaid invoices
+- Fast, responsive UI using Tailwind CSS
+
+---
+
+## 🧑‍💻 Running Locally
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/kskeerthana/billing-management.git
+cd billing-management
+npm install
+npm run dev
+
