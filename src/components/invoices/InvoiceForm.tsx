@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 import { invoiceSchema } from '../../schemas';
-import type { Invoice } from '../../types';
+import { Invoice } from '../../types';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useStore, useCustomers } from '../../store';
@@ -41,6 +41,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
       discount: 0,
       discountType: 'percentage',
       globalTaxRate: 0,
+      subtotal: 0,
+      totalTax: 0,
       notes: ''
     }
   });

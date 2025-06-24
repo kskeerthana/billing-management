@@ -43,12 +43,12 @@ export const invoiceSchema = z.object({
   dueDate: z.string().min(1, "Due date is required"),
   items: z.array(invoiceItemSchema).min(1, "At least one item is required"),
   // Additional fields for the enhanced form
-  globalTaxRate: z.number().min(0).max(100).optional(), // Global tax rate if using
+  globalTaxRate: z.number().min(0).max(100).default(0), // Changed to have default
   discount: z.number().min(0).default(0), // Discount amount
   discountType: z.enum(['percentage', 'fixed']).default('percentage'),
-  subtotal: z.number().optional(), // Calculated field
-  totalTax: z.number().optional(), // Calculated field
-  notes: z.string().optional()
+  subtotal: z.number().default(0), // Changed to have default
+  totalTax: z.number().default(0), // Changed to have default
+  notes: z.string().default('') // Changed to have default
 });
 
 // Export types from schemas
