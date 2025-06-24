@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 import { invoiceSchema } from '../../schemas';
-import { Invoice } from '../../types';
+import type { Invoice } from '../../types';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { useStore, useCustomers } from '../../store';
@@ -37,12 +37,16 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
       customerId: '',
       date: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      items: [{ description: '', quantity: 1, price: 0, taxRate: 0, total: 0 }],
+      items: [{ 
+        description: '', 
+        quantity: 1, 
+        price: 0, 
+        total: 0,
+        taxRate: 0  // taxRate after total, matching schema order
+      }],
       discount: 0,
       discountType: 'percentage',
       globalTaxRate: 0,
-      subtotal: 0,
-      totalTax: 0,
       notes: ''
     }
   });
@@ -215,13 +219,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onComplete }) => {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">Items</h3>
-            <Button 
-              type="button" 
-              variant="secondary" 
-              onClick={() => append({ description: '', quantity: 1, price: 0, taxRate: 0, total: 0 })}
-            >
-              <Plus className="w-4 h-4 mr-1 inline" />
-              Add Item
+            <Button type="button" 
+            variant="secondary" 
+            onClick={() => append({ 
+                description: '', 
+                quantity: 1, 
+                price: 0, 
+                total: 0,
+                taxRate: 0  // taxRate after total
+            })}>
+            <Plus className="w-4 h-4 mr-1 inline" />
+            Add Item
             </Button>
           </div>
           

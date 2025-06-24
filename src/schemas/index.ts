@@ -27,28 +27,27 @@ export const customerSchema = z.object({
   sameAsShipping: z.boolean()
 });
 
-// Enhanced Invoice Item Schema with tax
+// Invoice Item Schema - matching the expected order
 export const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.number().min(1, "Quantity must be at least 1"),
   price: z.number().min(0, "Price must be positive"),
-  taxRate: z.number().min(0).max(100).default(0), // Tax rate as percentage
-  total: z.number()
+  total: z.number(),
+  taxRate: z.number().min(0).max(100).optional() // Made optional and moved after total
 });
 
-// Enhanced Invoice Schema with all fields
+// Invoice Schema - keeping fields optional as expected
 export const invoiceSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   date: z.string().min(1, "Date is required"),
   dueDate: z.string().min(1, "Due date is required"),
   items: z.array(invoiceItemSchema).min(1, "At least one item is required"),
-  // Additional fields for the enhanced form
-  globalTaxRate: z.number().min(0).max(100).default(0), // Changed to have default
-  discount: z.number().min(0).default(0), // Discount amount
-  discountType: z.enum(['percentage', 'fixed']).default('percentage'),
-  subtotal: z.number().default(0), // Changed to have default
-  totalTax: z.number().default(0), // Changed to have default
-  notes: z.string().default('') // Changed to have default
+  globalTaxRate: z.number().min(0).max(100).optional(),
+  discount: z.number().min(0).optional(),
+  discountType: z.enum(['percentage', 'fixed']).optional(),
+  subtotal: z.number().optional(),
+  totalTax: z.number().optional(),
+  notes: z.string().optional()
 });
 
 // Export types from schemas
