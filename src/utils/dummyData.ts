@@ -73,7 +73,7 @@ export const generateDummyInvoices = (customers: Customer[]): Invoice[] => {
   let invoiceCounter = 1;
   
   // Generate 2-3 invoices per customer
-  customers.forEach((customer, customerIndex) => {
+  customers.forEach((customer) => {
     const invoiceCount = Math.floor(Math.random() * 2) + 2; // 2 or 3 invoices per customer
     
     for (let i = 0; i < invoiceCount; i++) {

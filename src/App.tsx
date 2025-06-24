@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Plus, Download, Upload } from 'lucide-react';
+import { Users, FileText, Plus, Download, Upload, RefreshCw } from 'lucide-react';
 import { CustomerForm } from './components/customers/CustomerForm';
 import { CustomerList } from './components/customers/CustomerList';
 import { InvoiceForm } from './components/invoices/InvoiceForm';
 import { InvoiceList } from './components/invoices/InvoiceList';
 import { Button } from './components/shared/Button';
+import { LoadingSpinner } from './components/shared/LoadingSpinner';
 import type { Customer } from './types';
 import { useStore } from './store';
 import { initializeDummyData } from './utils/dummyData';
+import { storageService } from './services/storage.services';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'customers' | 'invoices'>('customers');
@@ -24,26 +26,30 @@ function App() {
   // Initialize data on mount
   useEffect(() => {
     const init = async () => {
-      console.log('Initializing app data...');
-      
-      // Check if this is the first load
-      const hasSeenApp = localStorage.getItem('billing-app-initialized');
-      
-      if (!hasSeenApp) {
-        // Initialize dummy data on first load
-        await initializeDummyData();
-        localStorage.setItem('billing-app-initialized', 'true');
+      try {
+        console.log('Initializing app data...');
+        
+        // Check if this is the first time using the app
+        const hasSeenApp = localStorage.getItem('billing-app-initialized');
+        
+        if (!hasSeenApp) {
+          // Initialize dummy data on first load
+          await initializeDummyData();
+          localStorage.setItem('billing-app-initialized', 'true');
+        }
+        
+        // Load data from storage
+        await initializeData();
+      } catch (error) {
+        console.error('Error initializing app:', error);
+      } finally {
+        setIsFirstLoad(false);
       }
-      
-      // Load data from storage
-      await initializeData();
-      setIsFirstLoad(false);
     };
     
     init();
   }, [initializeData]);
 
-  // Rest of your component remains the same...
   const handleCustomerComplete = () => {
     setShowCustomerForm(false);
     setEditingCustomer(null);
@@ -97,14 +103,35 @@ function App() {
     event.target.value = '';
   };
 
-  // Add a button to reset and regenerate dummy data (optional)
+  // Add a button to reset and regenerate dummy data (development only)
   const handleResetDummyData = async () => {
     if (window.confirm('This will delete all existing data and generate new dummy data. Are you sure?')) {
-      localStorage.removeItem('billing-app-initialized');
-      await storageService.clearAllData();
-      window.location.reload();
+      setIsFirstLoad(true);
+      try {
+        localStorage.removeItem('billing-app-initialized');
+        await storageService.clearAllData();
+        await initializeDummyData();
+        localStorage.setItem('billing-app-initialized', 'true');
+        await initializeData();
+      } catch (error) {
+        console.error('Error resetting data:', error);
+      } finally {
+        setIsFirstLoad(false);
+      }
     }
   };
+
+  // Show loading screen during initial load
+  if (isFirstLoad) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="mt-4 text-gray-600">Loading your billing data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -155,6 +182,16 @@ function App() {
                     className="hidden"
                   />
                 </label>
+                {/* Only show in development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={handleResetDummyData}
+                    className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                    title="Reset with dummy data"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </nav>
           </div>
